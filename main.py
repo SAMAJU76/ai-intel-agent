@@ -1,4 +1,5 @@
 import os, json, yaml, pathlib, sys, time
+TOP_N = 10  # show only the top 10 items in the brief
 from datetime import datetime, timedelta
 from dateutil import tz
 from jinja2 import Environment, FileSystemLoader, select_autoescape
@@ -83,7 +84,7 @@ def render_html(items, profile, brief_date):
     user_tpl = open('prompts/summarize_user.txt','r',encoding='utf-8').read()
 
     enriched = []
-    for it in items[:24]:  # ~2x faster
+    for it in items[:TOP_N]:  # take top 10 by score (Impact & Urgency)
         user_prompt = user_tpl.format(
             title=it['title'], date=it.get('date',''), source=it['source'], url=it['link'], snippet=it.get('snippet','')
         )
@@ -92,12 +93,10 @@ def render_html(items, profile, brief_date):
         it['exec_action'] = summ.get('exec_action','Review relevance and add to backlog.')
         enriched.append(it)
 
-    top_actions = enriched[:6]
-    # Group by category for sections
-    sections_map = {}
-    for it in enriched[6:]:
-        sections_map.setdefault(it['category'].replace('_',' ').title(), []).append(it)
-    sections = [{"name": k, "items": v} for k, v in sections_map.items()]
+# Show all top-N items in the action grid, and no lower sections
+top_actions = enriched           # all 10 cards go here
+sections = []                    # keep the brief to just the top 10
+
 
     html = tpl.render(
         brief_date=brief_date,
