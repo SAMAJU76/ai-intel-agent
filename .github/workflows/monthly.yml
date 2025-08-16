@@ -1,16 +1,17 @@
 name: Build Monthly Intelligence Brief (debug)
-run-name: "Monthly Intelligence Brief — debug #${{ github.run_number }}"
+run-name: "Monthly Intelligence Brief debug #${{ github.run_number }}"
 
 on:
   workflow_dispatch:
   schedule:
-    - cron: "0 2 16 * *"   # 10:00 SGT monthly
+    - cron: "0 2 16 * *"   # 10:00 UTC on day 16
 
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
 
       - name: Show repo contents
         run: |
@@ -26,7 +27,7 @@ jobs:
             echo "::error::requirements.txt is missing at repo root"
           fi
 
-      - name: Check OPENAI_API_KEY secret presence (not printing the key)
+      - name: Check OPENAI_API_KEY secret (not printing the key)
         env:
           HAS_KEY: ${{ secrets.OPENAI_API_KEY }}
         run: |
@@ -41,19 +42,26 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: Install deps (non-blocking)
+      - name: Install dependencies (non-blocking)
         run: |
           python -m pip install --upgrade pip || true
           pip install -r requirements.txt || true
 
       - name: Import sanity (non-blocking)
+        shell: bash
         run: |
           python - <<'PY'
 try:
-    import feedparser, bs4, requests, dateutil, jinja2, rapidfuzz, openai
+    import importlib
+    mods = ['feedparser','bs4','requests','dateutil','jinja2','rapidfuzz','openai']
+    for m in mods:
+        importlib.import_module(m)
+        print("OK", m)
     print("imports ok")
 except Exception as e:
-    import traceback; print("import error:", e); traceback.print_exc()
+    import traceback
+    print("import error:", e)
+    traceback.print_exc()
 PY
 
       - name: Prepare output dir
@@ -66,19 +74,22 @@ PY
           python main.py || true
 
       - name: Ensure artifact exists (fallback if needed)
+        shell: bash
         run: |
           if ! ls output/*.html >/dev/null 2>&1; then
             python - <<'PY'
-from datetime import datetime; import os
+from datetime import datetime
+import os
 os.makedirs('output', exist_ok=True)
 d = datetime.utcnow().strftime('%Y-%m-%d')
-open(f'output/monthly_intel_{d}.html','w',encoding='utf-8').write(
-  '<!doctype html><h1>Fallback brief</h1><p>See step "Run generator" for the first error line.</p>')
+html = '<!doctype html><h1>Fallback brief</h1><p>See step Run generator for the first error line.</p>'
+open(f'output/monthly_intel_{d}.html','w',encoding='utf-8').write(html)
 print("Created fallback HTML")
 PY
           fi
 
-      - uses: actions/upload-artifact@v4
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
         with:
           name: monthly-brief
           path: output/*.html
