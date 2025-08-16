@@ -1,0 +1,39 @@
+name: Build Monthly Intelligence Brief
+
+on:
+  schedule:
+    # 02:00 UTC on the 15th of each month (10:00 SGT)
+    - cron:  '0 2 15 * *'
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    concurrency:
+      group: monthly-intel
+      cancel-in-progress: false
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Generate brief
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: |
+          python main.py
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: monthly-brief
+          path: output/*.html
