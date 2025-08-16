@@ -1,5 +1,4 @@
-name: Build Monthly Intelligence Brief
-run-name: "Monthly Intelligence Brief — #${{ github.run_number }}"
+name: Build Monthly Intelligence Brief (tmp)
 
 on:
   workflow_dispatch:
@@ -7,51 +6,14 @@ on:
     - cron: "0 2 16 * *"   # 10:00 SGT monthly
 
 jobs:
-  build:
+  hello:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
-
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - run: |
+          echo "YAML OK"
+          mkdir -p output
+          echo '<!doctype html><h1>hello</h1>' > output/test.html
+      - uses: actions/upload-artifact@v4
         with:
-          python-version: "3.11"
-          cache: pip
-          cache-dependency-path: requirements.txt
-
-      - name: Install dependencies (non-blocking)
-        run: |
-          python -m pip install --upgrade pip || true
-          pip install -r requirements.txt || true
-
-      - name: Prepare output dir
-        run: mkdir -p output
-
-      - name: Generate brief (non-blocking)
-        env:
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-        run: |
-          python main.py || true
-
-      - name: Ensure artifact exists (fallback if needed)
-        run: |
-          if ! ls output/*.html >/dev/null 2>&1; then
-            python - <<'PY'
-from datetime import datetime; import os
-os.makedirs('output', exist_ok=True)
-d = datetime.utcnow().strftime('%Y-%m-%d')
-open(f'output/monthly_intel_{d}.html','w',encoding='utf-8').write(
-  f'<!doctype html><h1>Fallback brief {d}</h1><p>See "Generate brief" logs for the first error line.</p>')
-print('Created fallback monthly HTML')
-PY
-          fi
-
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: monthly-brief
-          path: output/*.html
-          if-no-files-found: warn
+          name: sanity
+          path: output/test.html
