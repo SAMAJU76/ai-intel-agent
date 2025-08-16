@@ -36,3 +36,4 @@ Find the output in `output/monthly_intel_YYYY-MM-DD.html`
 ## Notes
 - Some sources (e.g., Gartner, MAS, ServiceNow press) may not provide RSS. Leave them as `type: page` and switch to site-specific scraping (or email digests).
 - Always respect terms of use. Keep to brief excerpts and link back to originals.
+- 
