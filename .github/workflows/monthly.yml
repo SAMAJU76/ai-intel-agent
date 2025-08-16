@@ -1,65 +1,84 @@
-name: Build Monthly Intelligence Brief
+name: Build Monthly Intelligence Brief (debug)
+run-name: "Monthly Intelligence Brief — debug #${{ github.run_number }}"
 
 on:
   workflow_dispatch:
   schedule:
-    - cron: '0 2 16 * *'    # 10:00 SGT on the 16th
+    - cron: "0 2 16 * *"   # 10:00 SGT monthly
 
 jobs:
   build:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
-
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+
+      - name: Show repo contents
+        run: |
+          pwd
+          ls -la
+
+      - name: Check requirements.txt
+        run: |
+          if [ -f requirements.txt ]; then
+            echo "requirements.txt found:"
+            cat requirements.txt
+          else
+            echo "::error::requirements.txt is missing at repo root"
+          fi
+
+      - name: Check OPENAI_API_KEY secret presence (not printing the key)
+        env:
+          HAS_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: |
+          if [ -z "$HAS_KEY" ]; then
+            echo "::error::OPENAI_API_KEY is NOT set in repository secrets (Settings → Secrets and variables → Actions)"
+          else
+            echo "OPENAI_API_KEY length: ${#HAS_KEY} (hidden)"
+          fi
 
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
-          cache: 'pip'
-          cache-dependency-path: 'requirements.txt'
+          python-version: "3.11"
 
-      - name: Install dependencies (don’t fail job)
+      - name: Install deps (non-blocking)
         run: |
           python -m pip install --upgrade pip || true
           pip install -r requirements.txt || true
 
+      - name: Import sanity (non-blocking)
+        run: |
+          python - <<'PY'
+try:
+    import feedparser, bs4, requests, dateutil, jinja2, rapidfuzz, openai
+    print("imports ok")
+except Exception as e:
+    import traceback; print("import error:", e); traceback.print_exc()
+PY
+
       - name: Prepare output dir
         run: mkdir -p output
 
-      # Try to generate the brief but DO NOT fail the job if it errors
-      - name: Generate brief (non-blocking)
+      - name: Run generator (non-blocking)
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         run: |
-          set -o pipefail
           python main.py || true
 
-      # If no HTML exists, create a tiny fallback so the upload never complains
       - name: Ensure artifact exists (fallback if needed)
         run: |
           if ! ls output/*.html >/dev/null 2>&1; then
             python - <<'PY'
-from datetime import datetime
-import os
+from datetime import datetime; import os
 os.makedirs('output', exist_ok=True)
 d = datetime.utcnow().strftime('%Y-%m-%d')
-html = f"""<!doctype html><meta charset="utf-8">
-<title>Monthly Intelligence Brief — {d}</title>
-<body style="font-family:system-ui;margin:40px">
-<h1>Monthly Intelligence Brief — {d}</h1>
-<p>This is a fallback file created by CI (the generator step failed).
-Open this run’s logs (step “Generate brief”) for the first error line.</p>
-</body>"""
-open(f"output/monthly_intel_{d}.html","w",encoding="utf-8").write(html)
+open(f'output/monthly_intel_{d}.html','w',encoding='utf-8').write(
+  '<!doctype html><h1>Fallback brief</h1><p>See step "Run generator" for the first error line.</p>')
 print("Created fallback HTML")
 PY
           fi
 
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v4
         with:
           name: monthly-brief
           path: output/*.html
