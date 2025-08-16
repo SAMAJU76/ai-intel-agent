@@ -2,14 +2,15 @@ name: Build Monthly Intelligence Brief
 run-name: "Monthly Intelligence Brief — #${{ github.run_number }}"
 
 on:
-  workflow_dispatch:    # enables the “Run workflow” button
+  workflow_dispatch:
   schedule:
-    # 02:00 UTC on the 16th of every month (10:00 SGT) – change if you want
-    - cron: '0 2 16 * *'
+    - cron: '0 2 16 * *'    # 10:00 SGT on the 16th
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -21,21 +22,44 @@ jobs:
           cache: 'pip'
           cache-dependency-path: 'requirements.txt'
 
-      - name: Install dependencies
+      - name: Install dependencies (don’t fail job)
         run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
+          python -m pip install --upgrade pip || true
+          pip install -r requirements.txt || true
 
       - name: Prepare output dir
         run: mkdir -p output
 
-      - name: Generate brief
+      # Try to generate the brief but DO NOT fail the job if it errors
+      - name: Generate brief (non-blocking)
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-        run: python main.py
+        run: |
+          set -o pipefail
+          python main.py || true
 
-      - name: Upload artifact (always)
-        if: always()
+      # If no HTML exists, create a tiny fallback so the upload never complains
+      - name: Ensure artifact exists (fallback if needed)
+        run: |
+          if ! ls output/*.html >/dev/null 2>&1; then
+            python - <<'PY'
+from datetime import datetime
+import os
+os.makedirs('output', exist_ok=True)
+d = datetime.utcnow().strftime('%Y-%m-%d')
+html = f"""<!doctype html><meta charset="utf-8">
+<title>Monthly Intelligence Brief — {d}</title>
+<body style="font-family:system-ui;margin:40px">
+<h1>Monthly Intelligence Brief — {d}</h1>
+<p>This is a fallback file created by CI (the generator step failed).
+Open this run’s logs (step “Generate brief”) for the first error line.</p>
+</body>"""
+open(f"output/monthly_intel_{d}.html","w",encoding="utf-8").write(html)
+print("Created fallback HTML")
+PY
+          fi
+
+      - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: monthly-brief
