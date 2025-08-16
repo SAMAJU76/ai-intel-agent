@@ -2,7 +2,6 @@ from datetime import datetime
 from dateutil import parser as dtp, tz
 REQUEST_TIMEOUT = 12
 MAX_ITEMS_PER_SOURCE = 40
-
 import re, time, json, os, math, hashlib, feedparser, requests, yaml
 from bs4 import BeautifulSoup
 from rapidfuzz import fuzz
@@ -28,7 +27,6 @@ def within_days(dt, days, timezone='Asia/Singapore'):
     now_utc = now_local.astimezone(tz.UTC)
     delta = now_utc - t_utc
     return 0 <= delta.days <= days
-
 
 def clean_html(html):
     soup = BeautifulSoup(html or '', 'html.parser')
