@@ -1,5 +1,6 @@
 import os
 os.makedirs('output', exist_ok=True)
+
 TOP_N = 10  # show only the top 10 items in the brief
 from datetime import datetime, timedelta
 from dateutil import tz
