@@ -1,3 +1,5 @@
+from datetime import datetime
+
 import re, time, json, os, math, hashlib, feedparser, requests, yaml
 from bs4 import BeautifulSoup
 from dateutil import parser as dtp, tz
@@ -27,12 +29,12 @@ def within_days(dt, days, timezone='Asia/Singapore'):
         t = t.replace(tzinfo=tz.UTC)
     t_utc = t.astimezone(tz.UTC)
 
-    now_local = dtp.datetime.now(tz.gettz(timezone))
+    now_local = datetime.now(tz.gettz(timezone))
     now_utc = now_local.astimezone(tz.UTC)
 
     delta = now_utc - t_utc
-    # guard against negative deltas (future-dated items)
     return 0 <= delta.days <= days
+
 
 
 def clean_html(html):
