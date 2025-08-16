@@ -1,0 +1,24 @@
+name: Python Sanity
+on: workflow_dispatch
+jobs:
+  py:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Run a one-liner and write file
+        run: |
+          python -c "print('python ok')"
+          mkdir -p output
+          python - <<'PY'
+from datetime import datetime; import os
+os.makedirs('output', exist_ok=True)
+open('output/PY_OK.html','w').write(f'<!doctype html><h1>PY OK {datetime.utcnow().isoformat()}Z</h1>')
+print('wrote PY_OK.html')
+PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: python-sanity
+          path: output/PY_OK.html
