@@ -1,0 +1,18 @@
+name: Actions Sanity
+on:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Create a tiny HTML
+        run: |
+          mkdir -p output
+          echo '<!doctype html><h1>SMOKE OK</h1>' > output/SMOKE.html
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: sanity
+          path: output/SMOKE.html
