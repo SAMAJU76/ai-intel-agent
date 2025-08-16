@@ -14,29 +14,32 @@ except Exception:
     OPENAI_OK = False
 
 def llm_summarize(system_prompt, user_prompt, model='gpt-4.1-mini'):
-    if not OPENAI_OK:
-        # Fallback for environments without OpenAI installed/configured
+    try:
+        from openai import OpenAI
+        client = OpenAI()
+        resp = client.responses.create(
+            model=model,
+            input=[
+                {"role":"system","content":system_prompt},
+                {"role":"user","content":user_prompt}
+            ],
+            temperature=0.2
+        )
+        out = resp.output_text
+        try:
+            data = json.loads(out)
+        except Exception:
+            data = {"headline":"","summary":out.strip(),"exec_action":"Review","tags":[]}
+        return data
+    except Exception:
+        # Graceful fallback so the job still completes and produces an HTML file
         return {
             "headline": "",
-            "summary": "Summary unavailable in this environment. Add OPENAI_API_KEY to enable.",
-            "exec_action": "Review relevance and add to backlog",
+            "summary": "Summary unavailable (LLM not reachable). Link included above.",
+            "exec_action": "Skim source; assess relevance",
             "tags": []
         }
-    resp = client.responses.create(
-        model=model,
-        input=[
-            {"role":"system","content":system_prompt},
-            {"role":"user","content":user_prompt}
-        ],
-        temperature=0.2
-    )
-    # The Responses API returns a structured content array
-    out = resp.output_text
-    try:
-        data = json.loads(out)
-    except Exception:
-        data = {"headline":"","summary":out.strip(),"exec_action":"Review","tags":[]}
-    return data
+
 
 def collect_items(sources_cfg, coverage_days, weights):
     collected = []
