@@ -1,4 +1,5 @@
-import os
+import os, sys, traceback
+from datetime import datetime
 os.makedirs('output', exist_ok=True)
 
 TOP_N = 10  # show only the top 10 items in the brief
@@ -125,5 +126,20 @@ def main():
         f.write(html)
     print(f"Saved {out_path}")
 
-if __name__ == '__main__':
-    main()
+if __name__ == "__main__":
+    try:
+        main()
+    except Exception as e:
+        d = datetime.now().strftime("%Y-%m-%d")
+        fallback = f"""<!doctype html><meta charset="utf-8">
+<title>Monthly Intelligence Brief — {d}</title>
+<body style="font-family:system-ui;margin:40px">
+<h1>Monthly Intelligence Brief — {d}</h1>
+<p>Generation failed with an exception. See trace below.</p>
+<pre style="background:#f6f6f6;padding:12px;border-radius:8px;white-space:pre-wrap">{traceback.format_exc()}</pre>
+</body>"""
+        with open(f"output/monthly_intel_{d}.html","w",encoding="utf-8") as f:
+            f.write(fallback)
+        print("Wrote fallback brief to output/ due to error:", e)
+        sys.exit(0)  # don’t fail the step
+
