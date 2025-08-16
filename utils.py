@@ -8,15 +8,32 @@ def load_yaml(path):
     with open(path, 'r', encoding='utf-8') as f:
         return yaml.safe_load(f)
 
+from dateutil import parser as dtp, tz
+
 def within_days(dt, days, timezone='Asia/Singapore'):
-    if not dt: 
+    """
+    Returns True if dt is within the last `days` days.
+    Handles both naive and timezone-aware datetimes safely.
+    """
+    if not dt:
         return False
     try:
         t = dtp.parse(dt)
     except Exception:
         return False
-    now = dtp.datetime.now(tz.gettz(timezone))
-    return (now - t).days <= days
+
+    # Make both sides timezone-aware in UTC for safe subtraction
+    if t.tzinfo is None:
+        t = t.replace(tzinfo=tz.UTC)
+    t_utc = t.astimezone(tz.UTC)
+
+    now_local = dtp.datetime.now(tz.gettz(timezone))
+    now_utc = now_local.astimezone(tz.UTC)
+
+    delta = now_utc - t_utc
+    # guard against negative deltas (future-dated items)
+    return 0 <= delta.days <= days
+
 
 def clean_html(html):
     soup = BeautifulSoup(html or '', 'html.parser')
