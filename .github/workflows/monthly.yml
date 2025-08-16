@@ -1,5 +1,4 @@
 name: Build Monthly Intelligence Brief
-run-name: "Monthly Intelligence Brief — #${{ github.run_number }}"
 
 on:
   workflow_dispatch:
