@@ -1,0 +1,7 @@
+Source title: {title}
+Published: {date}
+Source: {source}
+URL: {url}
+
+Snippet:
+{snippet}

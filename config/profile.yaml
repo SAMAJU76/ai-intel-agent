@@ -1,0 +1,31 @@
+# Org-specific settings for the brief.
+meta:
+  audience: "Senior executives in technology strategy, investment governance, finance & operations (Banking/FS)"
+  org_priorities:
+    - Operational Efficiency
+    - Risk & Compliance
+    - AI & Automation
+    - Cloud & Data Platform
+  coverage_days: 30
+  timezone: "Asia/Singapore"
+
+scoring:
+  # Simple keyword and source weights to estimate Impact (1-5) & Urgency (Low/Med/High)
+  keywords:
+    regulation: 1.2
+    compliance: 1.2
+    resilience: 1.1
+    outage: 1.3
+    vulnerability: 1.3
+    ai: 1.1
+    cloud: 1.1
+    aml: 1.2
+    capital: 1.2
+    payments: 1.1
+    risk: 1.2
+  base_source_weight:
+    analyst_firms: 1.0
+    consulting: 0.9
+    regulators: 1.3
+    vendors: 1.0
+    communities: 0.8
