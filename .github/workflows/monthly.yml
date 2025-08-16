@@ -2,98 +2,39 @@ name: Build Monthly Intelligence Brief
 run-name: "Monthly Intelligence Brief — #${{ github.run_number }}"
 
 on:
+  workflow_dispatch:    # enables the “Run workflow” button
   schedule:
-    - cron: '0 2 16 * *'   # 10:00 SGT on the 16th
-  workflow_dispatch:
+    # 02:00 UTC on the 16th of every month (10:00 SGT) – change if you want
+    - cron: '0 2 16 * *'
 
 jobs:
   build:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
-
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        continue-on-error: true
-
-      - name: Show working dir (debug)
-        if: always()
-        run: |
-          pwd
-          ls -la
 
       - name: Set up Python
-        if: always()
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
           cache: 'pip'
           cache-dependency-path: 'requirements.txt'
-        continue-on-error: true
-
-      - name: Show versions (debug)
-        if: always()
-        run: |
-          python -V || true
-          pip -V || true
 
       - name: Install dependencies
-        if: always()
         run: |
-          python -m pip install --upgrade pip || true
-          pip install -r requirements.txt || true
-        continue-on-error: true
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
 
       - name: Prepare output dir
-        if: always()
         run: mkdir -p output
 
-      # Smoke test: ALWAYS write a tiny HTML so we know upload works.
-      - name: Write smoke HTML
-        if: always()
-        run: |
-          python - <<'PY'
-from datetime import datetime
-import os
-os.makedirs('output', exist_ok=True)
-d = datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%SZ')
-open('output/SMOKE.html','w',encoding='utf-8').write(
-  f"<!doctype html><meta charset='utf-8'><title>SMOKE</title><h1>SMOKE {d}</h1>")
-print("Wrote output/SMOKE.html")
-PY
-
-      # Try the real generator but NEVER fail the job here
-      - name: Run generator
-        if: always()
+      - name: Generate brief
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-        run: |
-          echo "::group::Run main.py"
-          python main.py || true
-          echo "::endgroup::"
+        run: python main.py
 
-      # If main.py didn’t produce HTML, create a fallback now (job STILL succeeds)
-      - name: Ensure real artifact exists (fallback if needed)
-        if: always()
-        run: |
-          if ! ls output/*.html 2>/dev/null | grep -qi 'monthly_intel_'; then
-            python - <<'PY'
-from datetime import datetime
-import os
-os.makedirs('output', exist_ok=True)
-d = datetime.utcnow().strftime('%Y-%m-%d')
-html = f"""<!doctype html><meta charset="utf-8">
-<title>Monthly Intelligence Brief — {d}</title>
-<body style='font-family:system-ui;margin:40px'>
-<h1>Monthly Intelligence Brief — {d}</h1>
-<p>Fallback brief created by CI so you always get an artifact.</p>
-</body>"""
-open(f"output/monthly_intel_{d}.html","w",encoding="utf-8").write(html)
-print("Created fallback monthly_intel HTML")
-PY
-          fi
-
-      - name: Upload artifact
+      - name: Upload artifact (always)
         if: always()
         uses: actions/upload-artifact@v4
         with:
