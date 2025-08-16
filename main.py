@@ -83,7 +83,7 @@ def render_html(items, profile, brief_date):
     user_tpl = open('prompts/summarize_user.txt','r',encoding='utf-8').read()
 
     enriched = []
-    for it in items[:50]:  # cap for speed
+    for it in items[:24]:  # ~2x faster
         user_prompt = user_tpl.format(
             title=it['title'], date=it.get('date',''), source=it['source'], url=it['link'], snippet=it.get('snippet','')
         )
