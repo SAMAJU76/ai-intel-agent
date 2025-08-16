@@ -1,5 +1,7 @@
 from datetime import datetime
 from dateutil import parser as dtp, tz
+REQUEST_TIMEOUT = 12
+MAX_ITEMS_PER_SOURCE = 40
 
 import re, time, json, os, math, hashlib, feedparser, requests, yaml
 from bs4 import BeautifulSoup
@@ -27,6 +29,7 @@ def within_days(dt, days, timezone='Asia/Singapore'):
     delta = now_utc - t_utc
     return 0 <= delta.days <= days
 
+
 def clean_html(html):
     soup = BeautifulSoup(html or '', 'html.parser')
     return soup.get_text(' ', strip=True)
@@ -48,8 +51,8 @@ def dedupe(items, threshold=92):
     return kept
 
 @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=1, max=8))
-def fetch_url(url, timeout=20):
-    headers={'User-Agent': 'intel-agent/1.0 (+https://example.com)'}
+def fetch_url(url, timeout=REQUEST_TIMEOUT):
+    headers = {'User-Agent': 'intel-agent/1.0'}
     r = requests.get(url, headers=headers, timeout=timeout)
     r.raise_for_status()
     return r.text
@@ -57,7 +60,7 @@ def fetch_url(url, timeout=20):
 def get_items_from_rss(name, url, days, timezone='Asia/Singapore'):
     feed = feedparser.parse(url)
     items = []
-    for e in feed.entries[:100]:
+    for e in feed.entries[:MAX_ITEMS_PER_SOURCE]:
         date = e.get('published') or e.get('updated') or ''
         if date and not within_days(date, days, timezone):
             continue
