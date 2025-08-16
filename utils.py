@@ -1,8 +1,8 @@
 from datetime import datetime
+from dateutil import parser as dtp, tz
 
 import re, time, json, os, math, hashlib, feedparser, requests, yaml
 from bs4 import BeautifulSoup
-from dateutil import parser as dtp, tz
 from rapidfuzz import fuzz
 from tenacity import retry, stop_after_attempt, wait_exponential
 
@@ -13,29 +13,19 @@ def load_yaml(path):
 from dateutil import parser as dtp, tz
 
 def within_days(dt, days, timezone='Asia/Singapore'):
-    """
-    Returns True if dt is within the last `days` days.
-    Handles both naive and timezone-aware datetimes safely.
-    """
     if not dt:
         return False
     try:
         t = dtp.parse(dt)
     except Exception:
         return False
-
-    # Make both sides timezone-aware in UTC for safe subtraction
     if t.tzinfo is None:
         t = t.replace(tzinfo=tz.UTC)
     t_utc = t.astimezone(tz.UTC)
-
     now_local = datetime.now(tz.gettz(timezone))
     now_utc = now_local.astimezone(tz.UTC)
-
     delta = now_utc - t_utc
     return 0 <= delta.days <= days
-
-
 
 def clean_html(html):
     soup = BeautifulSoup(html or '', 'html.parser')
