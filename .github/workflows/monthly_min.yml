@@ -1,0 +1,19 @@
+name: Build Monthly Intelligence Brief (tmp)
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 2 16 * *"   # 10:00 SGT monthly
+
+jobs:
+  hello:
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          echo "YAML OK"
+          mkdir -p output
+          echo '<!doctype html><h1>hello</h1>' > output/test.html
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sanity
+          path: output/test.html
